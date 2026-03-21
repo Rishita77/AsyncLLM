@@ -15,7 +15,7 @@ async def worker(worker_id: str, queue: asyncio.Queue, results: List[LLMResponse
         
         prompt_id, prompt = item
         
-        start = time.time()
+        start = time.perf_counter()
         
         try:
             output = await call_llm(prompt)
@@ -24,7 +24,7 @@ async def worker(worker_id: str, queue: asyncio.Queue, results: List[LLMResponse
                 request_id=prompt_id,
                 output_text=output,
                 start_time=start,
-                end_time = time.time(),
+                end_time = time.perf_counter(),
             )
             
         except Exception as e:
@@ -32,7 +32,7 @@ async def worker(worker_id: str, queue: asyncio.Queue, results: List[LLMResponse
                 request_id=prompt_id,
                 error=str(e),
                 start_time=start,
-                end_time=time.time(),
+                end_time=time.perf_counter(),
             )
             
         results.append(result)

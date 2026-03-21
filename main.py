@@ -4,8 +4,8 @@ from batch_processor import run_batch
 async def main() -> None:
     
     prompts = [
-        "Explain how to become Shivaji Maharaj in 21st century",
-        "Explain Harvey Specter mentality",
+        "Explain philosophy in LLMs in 21st century",
+        "Explain docker to a beginner",
     ]
 
     results = await run_batch(prompts, num_workers=5)
