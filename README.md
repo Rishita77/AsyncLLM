@@ -1,4 +1,4 @@
-# llm-batch-caller
+# AsyncLLM
 
 An async LLM batch processing client for the OpenAI API, built to be production-grade
 
@@ -14,39 +14,21 @@ An async LLM batch processing client for the OpenAI API, built to be production-
 
 ## Architecture
 
-            ┌──────────────┐
-            │ Input Prompts│
-            └──────┬───────┘
-                   ↓
-            ┌──────────────┐
-            │ Task Queue   │
-            └──────┬───────┘
-                   ↓
-        ┌──────────────────────┐
-        │ Workers (async pool) │
-        └──────┬───────────────┘
-               ↓
-   ┌─────────────────────────────┐
-   │ Rate Limiter (token bucket) │
-   └────────────┬────────────────┘
-                ↓
-        ┌──────────────┐
-        │ OpenAI API   │
-        └──────────────┘
-                ↓
-   ┌─────────────────────────────┐
-   │ Retry + Backoff + Jitter    │
-   └────────────┬────────────────┘
-                ↓
-        ┌──────────────┐
-        │ Result Queue │
-        └──────┬───────┘
-               ↓
-        Streaming Output
-
-## Quick Start
-
-python -m main.py
+        Input Prompts
+            ↓
+        Async Queue
+            ↓
+    Worker Pool (N workers)
+            ↓
+    Rate Limiter (Token Buckets)
+            ↓
+        OpenAI API
+            ↓
+    Retry Layer (Backoff + Jitter)
+            ↓
+        Result Queue
+            ↓
+        Streaming Consumer
 
 ## Running Tests
 
