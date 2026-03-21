@@ -1,20 +1,22 @@
-import os
 import asyncio
-from openai import AsyncOpenAI
-from dotenv import load_dotenv
-
-load_dotenv()
-
-API_KEY = os.getenv("OPENAI_API_KEY")
-
-client = AsyncOpenAI(api_key=API_KEY)
+from batch_processor import run_batch
 
 async def main() -> None:
-    response = await client.responses.create(
-        model="gpt-4o-mini",
-        input="You are a pirate. What is the capital of France?"
-    )
-    print(response.output_text)
+    
+    prompts = [
+        "Explain how to become Shivaji Maharaj in 21st century",
+        "Explain Harvey Specter mentality",
+    ]
+
+    results = await run_batch(prompts, num_workers=5)
+    
+    for r in results:
+        print(f"\nID: {r.request_id}")
+        print(f"Latency: {r.latency:.2f}s" if r.latency else "Latency: N/A")
+        print(f"Output: {r.output_text}")
+        print(f"Error: {r.error}")
+
+    
     
 asyncio.run(main())
     
