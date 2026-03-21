@@ -1,9 +1,9 @@
 import asyncio
 from models import LLMResponse
-from typing import List
 from worker import worker
 from core.rate_limiter import TokenBucket
 from typing import AsyncIterator
+from caller import call_llm
 
 async def run_batch(prompts: list, num_workers: int=5) -> AsyncIterator[LLMResponse]:
     queue = asyncio.Queue()
@@ -16,7 +16,7 @@ async def run_batch(prompts: list, num_workers: int=5) -> AsyncIterator[LLMRespo
         await queue.put((str(i),p))
         
     workers =  [
-        asyncio.create_task(worker(f"W{i}", queue, result_queue, request_bucket, token_bucket))
+        asyncio.create_task(worker(f"W{i}", queue, result_queue, request_bucket, token_bucket, call_llm))
         for i in range(num_workers)
     ]
     
