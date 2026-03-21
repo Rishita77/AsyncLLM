@@ -8,9 +8,9 @@ async def main() -> None:
         "Explain docker to a beginner",
     ]
 
-    results = await run_batch(prompts, num_workers=5)
+    stream = await run_batch(prompts, num_workers=5)
     
-    for r in results:
+    async for r in stream:
         print(f"\nID: {r.request_id}")
         print(f"Latency: {r.latency:.2f}s" if r.latency else "Latency: N/A")
         print(f"Output: {r.output_text}")
