@@ -30,6 +30,17 @@ An async LLM batch processing client for the OpenAI API, built to be production-
             ↓
         Streaming Consumer
 
+### Key Components
+
+| Module | Responsibility |
+|------|----------------|
+| `batch_processor.py` | Orchestrates pipeline + streaming |
+| `worker.py` | Executes tasks, handles retries |
+| `caller.py` | OpenAI API interaction |
+| `core/rate_limiter.py` | Token bucket implementation |
+| `core/retry.py` | Retry with exponential backoff |
+| `models.py` | Structured response objects |
+
 ## Running Tests
 
 ```bash
