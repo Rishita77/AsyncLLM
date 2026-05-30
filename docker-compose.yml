@@ -16,6 +16,20 @@ services:
       redis:
         condition: service_started
 
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: async-llm-worker
+    env_file:
+      - .env
+    command: ["python", "-m", "app.worker.main"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
   postgres:
     image: postgres:16-alpine
     container_name: async-llm-postgres
