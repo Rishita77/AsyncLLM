@@ -1,5 +1,5 @@
 import asyncio
-from batch_processor import run_batch
+from app.services.batch_processor import run_batch
 
 async def main() -> None:
     

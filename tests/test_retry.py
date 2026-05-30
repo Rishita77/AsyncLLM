@@ -1,5 +1,5 @@
 import pytest
-from core.retry import retry_with_backoff
+from app.core.retry import retry_with_backoff
 
 @pytest.mark.asyncio
 async def test_retry_succeeds_after_failures():

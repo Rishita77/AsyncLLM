@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 from worker import worker
-from models import LLMResponse
+from app.models.domain import LLMResponse
 
 @pytest.mark.asyncio
 async def test_worker_processes_success():

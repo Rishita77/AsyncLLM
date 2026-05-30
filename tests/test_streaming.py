@@ -1,7 +1,7 @@
 import pytest
 import asyncio
 import time
-from batch_processor import run_batch
+from app.services.batch_processor import run_batch
 
 @pytest.mark.asyncio
 async def test_streaming_results_arrive_incrementally():
