@@ -5,9 +5,9 @@ import uuid
 from collections.abc import Sequence
 
 from app.core.errors import ProviderTimeoutError
-from app.core.retry import retry_with_exponential_backoff
+from app.core.retry import retry_with_backoff
 from app.core.settings import Settings
-from app.providers.base import LLMProvider, ProviderResult, ProviderUsage
+from app.providers.base import LLMProvider, ProviderUsage
 from app.core.timeout import with_timeout
 from app.models.domain import BatchItemStatus, BatchMetrics, BatchResult
 
@@ -40,7 +40,7 @@ class BatchExecutionEngine:
                 )
             
         try:
-            provider_result, attempts = await retry_with_exponential_backoff(
+            provider_result, attempts = await retry_with_backoff(
                 operation=execute_once,
                 max_attempts=self._settings.max_retries,
                 base_delay_seconds = self._settings.retry_backoff_seconds,
@@ -101,8 +101,8 @@ class BatchExecutionEngine:
             async with asyncio.TaskGroup() as tg:
                 for prompt in prompts:
                     tg.create_task(wrapped(prompt))
-        except* asyncio.CancelledError:
-            raise
+        except Exception as e:  
+            raise e
         
         results.sort(key=lambda r: r.request_id)
         return results

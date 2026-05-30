@@ -1,0 +1,65 @@
+Metadata-Version: 2.4
+Name: async-llm-platform
+Version: 0.1.0
+Summary: Production-grade async LLM batch processing and evaluation platform
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.115.0
+Requires-Dist: uvicorn[standard]>=0.30.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: pydantic>=2.8.0
+Requires-Dist: pydantic-settings>=2.4.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.3.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: ruff>=0.5.0; extra == "dev"
+Requires-Dist: mypy>=1.11.0; extra == "dev"
+
+# AsyncLLM
+
+An async LLM batch processing client for the OpenAI API, built to be production-grade
+
+## Features
+
+- **Async concurrency** — run N requests in parallel via `asyncio`
+- **Token bucket rate limiting** — respect OpenAI's RPM and TPM limits automatically
+- **Exponential backoff with jitter** — retry transient failures without thundering herd
+- **Streaming results** — get results as they arrive, not all-at-once at the end
+- **Structured outputs** — typed results with latency, token usage, and error details
+- **Full test suite** — covers rate limiter, retry logic, and error handling
+
+
+## Architecture
+
+        Input Prompts
+            ↓
+        Async Queue
+            ↓
+    Worker Pool (N workers)
+            ↓
+    Rate Limiter (Token Buckets)
+            ↓
+        OpenAI API
+            ↓
+    Retry Layer (Backoff + Jitter)
+            ↓
+        Result Queue
+            ↓
+        Streaming Consumer
+
+### Key Components
+
+| Module | Responsibility |
+|------|----------------|
+| `batch_processor.py` | Orchestrates pipeline + streaming |
+| `worker.py` | Executes tasks, handles retries |
+| `caller.py` | OpenAI API interaction |
+| `core/rate_limiter.py` | Token bucket implementation |
+| `core/retry.py` | Retry with exponential backoff |
+| `models.py` | Structured response objects |
+
+## Running Tests
+
+```bash
+python -m pytest
+```
