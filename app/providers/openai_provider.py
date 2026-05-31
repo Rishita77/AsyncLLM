@@ -28,8 +28,7 @@ class OpenAIProvider(LLMProvider):
             response.raise_for_status()
             data = response.json()
             
-            output_field = data.get("output")
-            output_text = output_field.get("text") if isinstance(output_field, str) else ""
+            output_text = data.get("output_text", "")
             usage_data = data.get("usage", {})
             usage = ProviderUsage(
                 prompt_tokens=usage_data.get("prompt_tokens", 0),
