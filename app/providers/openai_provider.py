@@ -14,27 +14,50 @@ class OpenAIProvider(LLMProvider):
         )
         
     async def generate(self, prompt: str) -> ProviderResult:
-            payload = {
-                "model": self._model,
-                "input": prompt,
-            }
-            response = await self._client.post("/responses", json=payload)
-            
-            if response.status_code == 429:
-                raise ProviderRateLimitError("OpenAI API rate limit exceeded")
-            if response.status_code >= 500:
-                raise ProviderConnectionError(f"OpenAI API server error: {response.status_code}")
-            
-            response.raise_for_status()
-            data = response.json()
-            
-            output_text = data.get("output_text", "")
-            usage_data = data.get("usage", {})
-            usage = ProviderUsage(
-                prompt_tokens=usage_data.get("prompt_tokens", 0),
-                completion_tokens=usage_data.get("completion_tokens", 0),
+        payload = {
+            "model": self._model,
+            "input": prompt,
+        }
+
+        response = await self._client.post(
+            "/responses",
+            json=payload,
+            headers={"Content-Type": "application/json"},
+        )
+
+        print("STATUS:", response.status_code)
+        print("RESPONSE:", response.text)
+
+        if response.status_code == 429:
+            raise ProviderRateLimitError("OpenAI API rate limit exceeded")
+
+        if response.status_code >= 500:
+            raise ProviderConnectionError(
+                f"OpenAI API server error: {response.status_code}"
             )
-            return ProviderResult(output_text=output_text, usage=usage)
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        output_text = ""
+
+        for item in data.get("output", []):
+            for part in item.get("content", []):
+                if part.get("type") == "output_text":
+                    output_text += part.get("text", "")
+
+        usage_data = data.get("usage", {})
+
+        usage = ProviderUsage(
+            prompt_tokens=usage_data.get("input_tokens", 0),
+            completion_tokens=usage_data.get("output_tokens", 0),
+        )
+
+        return ProviderResult(
+            output_text=output_text,
+            usage=usage,
+        )
         
     async def aclose(self) -> None:
         await self._client.aclose()
