@@ -11,6 +11,7 @@ from app.core.timeout import with_timeout
 from app.models.domain import BatchItemStatus, BatchMetrics, BatchResult
 from app.providers.base import LLMProvider, ProviderResult, ProviderUsage
 
+
 class BatchExecutionEngine:
     def __init__(self, provider: LLMProvider, settings: Settings) -> None:
         self._provider = provider
@@ -22,7 +23,7 @@ class BatchExecutionEngine:
     
     def _estimate_prompt_tokens(self, prompt: str) -> int:
         return max(
-            1, 
+            1,
             int(
                 len(prompt.split())
                 * self._settings.estimated_input_token_multiplier
@@ -31,17 +32,17 @@ class BatchExecutionEngine:
     
     def _estimate_cost_usd(self, usage: ProviderUsage) -> float:
         input_cost = (
-            usage.input_tokens / 1_000_000
+            usage.prompt_tokens / 1_000_000
         ) * self._settings.input_token_usd_per_1m
         output_cost = (
-            usage.output_tokens / 1_000_000
+            usage.completion_tokens / 1_000_000
         ) * self._settings.output_token_usd_per_1m
         return round(input_cost + output_cost, 8)
     
     async def _run_single(
-        self, 
-        request_id: str, 
-        prompt: str, 
+        self,
+        request_id: str,
+        prompt: str,
         semaphore: asyncio.Semaphore
     ) -> BatchResult:
         start = time.perf_counter()
@@ -50,24 +51,24 @@ class BatchExecutionEngine:
             async with semaphore:
                 return await with_timeout(
                     self.provider.generate(prompt),
-                    timeout_seconds = self._settings.request_timeout_seconds
+                    timeout_seconds=self._settings.request_timeout_seconds,
                 )
             
         try:
             provider_result, attempts = await retry_with_backoff(
                 func=execute_once,
-                max_attempts=self._settings.max_retries,
-                base_delay_seconds = self._settings.retry_backoff_seconds,
+                max_retries=self._settings.max_retries,
+                base_delay_seconds=self._settings.retry_backoff_seconds,
             )
             
             usage = provider_result.usage
             status = BatchItemStatus.SUCCESS
             error = None
             output_text = provider_result.output_text
-        except ProviderTimeoutError as e:
+        except ProviderTimeoutError:
             attempts = self._settings.max_retries + 1
             usage = ProviderUsage(
-                input_tokens=self._estimate_prompt_tokens(prompt), 
+                prompt_tokens=self._estimate_prompt_tokens(prompt), 
                 completion_tokens=0,
             )
             status = BatchItemStatus.TIMEOUT
@@ -76,17 +77,18 @@ class BatchExecutionEngine:
         except asyncio.CancelledError:
             attempts = 1
             usage = ProviderUsage(
-                input_tokens=0, 
-                completion_tokens=0
+                prompt_tokens=0, 
+                completion_tokens=0,
             )
             status = BatchItemStatus.CANCELLED
             error = "Request was cancelled"
             output_text = None
+            raise
         except Exception as e:
-            attempts = self._settings.max_retries+1
+            attempts = self._settings.max_retries + 1
             usage = ProviderUsage(
-                input_tokens=self._estimate_prompt_tokens(prompt), 
-                completion_tokens=0
+                prompt_tokens=self._estimate_prompt_tokens(prompt), 
+                completion_tokens=0,
             )
             status = BatchItemStatus.FAILED
             error = str(e)
@@ -110,7 +112,7 @@ class BatchExecutionEngine:
         
     async def batch_execute(
         self, 
-        prompts: list[str], 
+        prompts: list[str],
         concurrency: int | None = None
     ) -> list[BatchResult]:
         
@@ -120,8 +122,8 @@ class BatchExecutionEngine:
         async def wrapped(index: int, prompt: str) -> None:
             request_id = str(uuid.uuid4())
             results[index] = await self._run_single(
-                request_id=request_id, 
-                prompt=prompt, 
+                request_id=request_id,
+                prompt=prompt,
                 semaphore=semaphore
             )
         
@@ -138,33 +140,31 @@ class BatchExecutionEngine:
 def compute_batch_metrics(results: Sequence[BatchResult]) -> BatchMetrics:
     if not results:
         return BatchMetrics(
-            total_items=0,
-            successful_items=0,
-            failed_items=0,
-            timed_out_items=0,
-            cancelled_items=0,
+            total_requests=0,
+            successful_requests=0,
+            failed_requests=0,
+            timed_out_requests=0,
+            cancelled_requests=0,
             average_latency_ms=0.0,
-            median_latency_ms=0.0,
-            total_cost_usd=0.0
+            p95_latency_ms=0.0,
         )
         
     latencies = [r.latency_ms for r in results]
-    # p95 latency is the latency value below which 95% of the latencies fall. We calculate the index for the 95th percentile and get the corresponding latency value.
-    p95_index = max(0, min(len(latencies)-1, int(round((len(latencies) - 1)*0.95))))
+    p95_index = max(0, min(len(latencies) - 1, int(round((len(latencies) - 1) * 0.95))))
     ordered_latencies = sorted(latencies)
         
     return BatchMetrics(
-        total_items=len(results),
-        successful_items=sum(
+        total_requests=len(results),
+        successful_requests=sum(
             1 for r in results if r.status == BatchItemStatus.SUCCESS
         ),
-        failed_items=sum(
+        failed_requests=sum(
             1 for r in results if r.status == BatchItemStatus.FAILED
         ),
-        timed_out_items=sum(
+        timed_out_requests=sum(
             1 for r in results if r.status == BatchItemStatus.TIMEOUT
         ),
-        cancelled_items=sum(
+        cancelled_requests=sum(
             1 for r in results if r.status == BatchItemStatus.CANCELLED
         ),
         average_latency_ms=statistics.mean(latencies),
