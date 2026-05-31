@@ -1,16 +1,17 @@
 import asyncio
+
 import pytest
 
 from app.core.settings import Settings
-from app.services.batch_processor import BatchExecutionEngine, compute_batch_metrics
 from app.models.domain import BatchItemStatus
 from app.providers.base import ProviderResult, ProviderUsage
+from app.services.batch_processor import BatchExecutionEngine, compute_batch_metrics
 
 class FakeProvider:
-    async def execute(self, prompt: str) -> ProviderResult:
+    async def generate(self, prompt: str) -> ProviderResult:
         await asyncio.sleep(0.01)  # Simulate some processing time
         return ProviderResult(
-            output=f"Processed: {prompt}", 
+            output_text=f"Processed: {prompt}", 
             usage=ProviderUsage(prompt_tokens=5, completion_tokens=5),
         )
         
@@ -33,15 +34,15 @@ async def test_batch_processor_returns_successful_results() -> None:
     for i, result in enumerate(results):
         assert result.status == BatchItemStatus.SUCCESS
         assert result.output_text == f"Processed: {prompts[i]}"
-        assert result.total_tokens == 12
+        assert result.total_tokens == 10
         
         
 @pytest.mark.asyncio
 async def test_compute_batch_metrics_summarizes_results() -> None:
-    Settings = Settings(
+    settings = Settings(
         OPENAI_API_KEY="test_key"
     )
-    engine = BatchExecutionEngine(provider=FakeProvider(), settings=Settings)
+    engine = BatchExecutionEngine(provider=FakeProvider(), settings=settings)
     results = await engine.batch_execute(["only prompt"], concurrency=1)
     metrics = compute_batch_metrics(results)
     

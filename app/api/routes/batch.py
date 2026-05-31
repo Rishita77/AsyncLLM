@@ -17,7 +17,10 @@ async def submit_batch(
     settings, engine = dependencies
     batch_id = str(uuid.uuid4())
     
-    batch_results = await engine.batch_execute(payload.prompts, concurrency=payload.concurrency)
+    batch_results = await engine.batch_execute(
+        payload.prompts, 
+        concurrency=payload.concurrency,
+    )
     metrics = compute_batch_metrics(batch_results)
     
     return BatchResponse(

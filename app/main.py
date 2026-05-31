@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from app.core.settings import get_settings
 from app.api.routes.batch import router as batch_router
+from app.core.settings import get_settings
 from app.models.api import HealthResponse
 
 

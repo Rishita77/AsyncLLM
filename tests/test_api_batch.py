@@ -1,15 +1,17 @@
+from collections.abc import AsyncIterator
+
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from app.api.dependencies import dependency_bundle
 from app.main import app
-from app.providers.base import ProviderUsage, ProviderResult
+from app.providers.base import ProviderResult, ProviderUsage
 
 
 class FakeProvider:
-    async def execute(self, prompt: str) -> ProviderResult:
+    async def generate(self, prompt: str) -> ProviderResult:
         return ProviderResult(
-            output=f"ok: {prompt}", 
+            output_text=f"ok: {prompt}", 
             usage=ProviderUsage(prompt_tokens=3, completion_tokens=4),
         )
         
@@ -23,7 +25,9 @@ async def test_batch_endpoint_returns_typed_payload() -> None:
     from app.core.settings import Settings
     from app.services.batch_processor import BatchExecutionEngine
     
-    async def fake_dependency_bundle():
+    dep_bundle_t = tuple[Settings, BatchExecutionEngine]
+    
+    async def fake_dependency_bundle() -> AsyncIterator[dep_bundle_t]:
         settings = Settings(
             OPENAI_API_KEY="test_key"
         )
@@ -33,8 +37,14 @@ async def test_batch_endpoint_returns_typed_payload() -> None:
     app.dependency_overrides[dependency_bundle] = fake_dependency_bundle
     
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
-            response = await client.post("/batch", json={"prompts": ["test1", "test2"], "concurrency": 2})
+        async with AsyncClient(
+            transport=ASGITransport(app=app), 
+            base_url="http://test",
+        ) as client:
+            response = await client.post(
+                "/batch", 
+                json={"prompts": ["test1", "test2"], "concurrency": 2},
+            )
 
     finally:
         app.dependency_overrides.clear()

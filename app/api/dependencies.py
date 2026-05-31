@@ -4,11 +4,11 @@ from app.core.settings import Settings, get_settings
 from app.providers.openai_provider import OpenAIProvider
 from app.services.batch_processor import BatchExecutionEngine
 
-def get_batch_execution_engine(settings: Settings = get_settings()) -> BatchExecutionEngine:
+def get_batch_execution_engine(settings: Settings) -> BatchExecutionEngine:
     provider = OpenAIProvider(
         api_key=settings.openai_api_key,
         model=settings.openai_model,
-        timeout_seconds=settings.provider_timeout_seconds,
+        timeout_seconds=settings.request_timeout_seconds,
     )
     return BatchExecutionEngine(provider=provider, settings=settings)
 

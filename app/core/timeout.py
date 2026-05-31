@@ -13,4 +13,6 @@ async def with_timeout(task: Awaitable[T], timeout_seconds: float) -> T:
         async with asyncio.timeout(timeout_seconds):
             return await task
     except TimeoutError as exc:
-        raise ProviderTimeoutError(f"Operation timed out after {timeout_seconds:.2f} seconds") from exc
+        raise ProviderTimeoutError(
+            f"Operation timed out after {timeout_seconds:.2f} seconds"
+        ) from exc

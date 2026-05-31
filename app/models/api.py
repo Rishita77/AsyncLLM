@@ -9,7 +9,7 @@ class BatchResponse(BaseModel):
     metrics: BatchMetrics
     
 class BatchRequest(BaseModel):
-    prompts: list[str] = Field(min_items=1, max_items=20)
+    prompts: list[str] = Field(min_length=1, max_length=20)
     concurrency: int | None = Field(default=None, ge=1, le=4)
     
 class HealthResponse(BaseModel):
