@@ -10,6 +10,7 @@ from app.core.settings import Settings
 from app.core.timeout import with_timeout
 from app.models.domain import BatchItemStatus, BatchMetrics, BatchResult
 from app.providers.base import LLMProvider, ProviderResult, ProviderUsage
+from app.observability.metrics import record_prompt
 
 
 class BatchExecutionEngine:
@@ -83,6 +84,13 @@ class BatchExecutionEngine:
             status = BatchItemStatus.CANCELLED
             error = "Request was cancelled"
             output_text = None
+            latency = (time.perf_counter() - start) * 1000
+            record_prompt(
+                status=status.value,
+                latency_ms=latency,
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
             raise
         except Exception as e:
             attempts = self._settings.max_retries + 1
@@ -95,6 +103,13 @@ class BatchExecutionEngine:
             output_text = None
         
         latency = (time.perf_counter() - start) * 1000
+        
+        record_prompt(
+            status=status.value,
+            latency_ms=latency,
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+        )
         
         return BatchResult(
             request_id=request_id,
